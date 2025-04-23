@@ -8,7 +8,7 @@ Goldigger is a product meant to help streamlining Golden Testing workflow, espec
 unify the workflow for teams.
 The goal is to be able to easily run tests, review and approve them throw a easy-to-use web intergace.
 
-# Problem it solved
+# Problem it solves
 
 - There are unfortunately still subtle differences between generated golden images on different host platforms, Golddigger allows to run tests on a single platform (on CI/CD pipelins) removing this problem
 - Approval and re-submission of golden test can be lengthy, Goldigger unifies the process in one place
