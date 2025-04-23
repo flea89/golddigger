@@ -6,7 +6,7 @@ This is a first attempt to define and get initial feedback on Golddigger.
 
 Goldigger is a product meant to help streamlining Golden Testing workflow, especially when it comes CI/CD. But more in general
 unify the workflow for teams.
-The goal is to be able to easily run tests, review and approve them throw a easy-to-use web intergace.
+The goal is to be able to easily run tests, review and approve them through an easy-to-use web intergace.
 
 # Problem it solves
 
