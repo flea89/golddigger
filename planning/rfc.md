@@ -78,6 +78,8 @@ Another option is Mongo DB. . Firestore now supports (a subset of) mongodb APIs,
 I'm not sureFirestore/documentdb would support an ORM like prisma (the partial support of mongo APIs might break things?)
 An alternative could be MongoDb Atlas.
 This needs lots of thinking, a small techspike and it's own design doc.
+See [here](../techspikes/db-layer/README.md)
+
 
 
 
