@@ -43,6 +43,10 @@ The first MVP should be as encapsulated as possible should allow to
 - If the change is accepted, then some TBD mechanism allows users to update goldens in the repo, ideally in the same branch/MR as the original trigger
 - Once the change is applied (e.g. upstream has the new goldens) we should let the service know, so it can mark the change as applied and potentially do some clean up
 
+## Wireframes
+
+[Miro Board](https://miro.com/app/board/uXjVIymLHvA=/)
+
 ## To consider
 
 - Some some kind of cli tool could be useful to simplify some of these tasks (e.g. CI -> Golddigger and Dev Laptop -> Golddigger)
