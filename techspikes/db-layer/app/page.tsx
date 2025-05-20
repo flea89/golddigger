@@ -1,13 +1,30 @@
+export const dynamic = "force-dynamic";
+
 import Image from "next/image";
-import { Firestore } from "@google-cloud/firestore";
+// import { Firestore } from "@google-cloud/firestore";
+import { PrismaClient } from "@/generated/prisma";
 
 
 export default async function Home() {
-  const firestore = new Firestore();
-  const usersCollection = firestore.collection('users');
-  const document = usersCollection.doc('paolo');
-  const paolo = await document.get();
-  const paolosdata = await paolo.data()!;
+  // const firestore = new Firestore();
+  // const usersCollection = firestore.collection('users');
+  // const document = usersCollection.doc('paolo');
+  // const paolo = await document.get();
+  // const paolosdata = await paolo.data()!;
+
+  const prisma = new PrismaClient()
+
+  const post = await prisma.post.create({
+    data: {
+      name: 'test-gcp-remote-baby',
+      surname: 'test-gcp-remote-baby',
+      isMongo: true,
+    }
+  })
+
+  const postCount = await prisma.post.count();
+
+  console.log(`created ${post}`);
 
 
   return (
@@ -21,7 +38,7 @@ export default async function Home() {
           height={38}
           priority
         />
-        <h1>hi {paolosdata['name']} {paolosdata['surname']}s</h1>
+        <h1>Post count {postCount}</h1>
         <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
           <li className="mb-2 tracking-[-.01em]">
             Get started by editing{" "}
