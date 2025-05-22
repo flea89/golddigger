@@ -1,6 +1,8 @@
-# Golddigger RFC
+# Goldigger RFC
 
-This is a first attempt to define and get initial feedback on Golddigger.
+
+This is a first attempt to define and get initial feedback on Goldigger.
+
 
 # Summary
 
@@ -10,7 +12,8 @@ The goal is to be able to easily run tests, review and approve them through an e
 
 # Problem it solves
 
-- There are unfortunately still subtle differences between generated golden images on different host platforms, Golddigger allows to run tests on a single platform (on CI/CD pipelins) removing this problem
+- There are unfortunately still subtle differences between generated golden images on different host platforms, Goldigger allows to run tests on a single platform (on CI/CD pipelins) removing this problem
+
 - Approval and re-submission of golden test can be lengthy, Goldigger unifies the process in one place
 
 # Goal
@@ -49,7 +52,8 @@ The first MVP should be as encapsulated as possible should allow to
 
 ## To consider
 
-- Some some kind of cli tool could be useful to simplify some of these tasks (e.g. CI -> Golddigger and Dev Laptop -> Golddigger)
+- Some some kind of cli tool could be useful to simplify some of these tasks (e.g. CI -> Goldigger and Dev Laptop -> Goldigger)
+
 - terraform to define and manage infrastructure
 
 

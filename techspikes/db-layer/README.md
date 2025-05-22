@@ -45,10 +45,12 @@
 
 ```
 gcloud builds submit \
-  --pack image=europe-west12-docker.pkg.dev/golddigger-tec/cloud-run-source-deploy \
+--pack image=europe-west12-docker.pkg.dev/goldigger-tec/cloud-run-source-deploy \
+
   --build-env-vars g="mongodb://localhost:27017/devdb"
 ```
 
-europe-west12-docker.pkg.dev/golddigger-tec/cloud-run-source-deploy
+europe-west12-docker.pkg.dev/goldigger-tec/cloud-run-source-deploy
 
-`gcloud run deploy db-layer --source . --build-env-vars-file .env.prod.yaml --project golddigger-tec --region europe-west12 --env-vars-file .env.prod.yaml`
+
+`gcloud run deploy db-layer --source . --build-env-vars-file .env.prod.yaml --project goldigger-tec --region europe-west12 --env-vars-file .env.prod.yaml`
