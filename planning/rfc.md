@@ -1,6 +1,8 @@
-# Golddigger RFC
+# Goldigger RFC
 
-This is a first attempt to define and get initial feedback on Golddigger.
+
+This is a first attempt to define and get initial feedback on Goldigger.
+
 
 # Summary
 
@@ -10,7 +12,8 @@ The goal is to be able to easily run tests, review and approve them through an e
 
 # Problem it solves
 
-- There are unfortunately still subtle differences between generated golden images on different host platforms, Golddigger allows to run tests on a single platform (on CI/CD pipelins) removing this problem
+- There are unfortunately still subtle differences between generated golden images on different host platforms, Goldigger allows to run tests on a single platform (on CI/CD pipelins) removing this problem
+
 - Approval and re-submission of golden test can be lengthy, Goldigger unifies the process in one place
 
 # Goal
@@ -43,9 +46,14 @@ The first MVP should be as encapsulated as possible should allow to
 - If the change is accepted, then some TBD mechanism allows users to update goldens in the repo, ideally in the same branch/MR as the original trigger
 - Once the change is applied (e.g. upstream has the new goldens) we should let the service know, so it can mark the change as applied and potentially do some clean up
 
+## Wireframes
+
+[Miro Board](https://miro.com/app/board/uXjVIymLHvA=/)
+
 ## To consider
 
-- Some some kind of cli tool could be useful to simplify some of these tasks (e.g. CI -> Golddigger and Dev Laptop -> Golddigger)
+- Some some kind of cli tool could be useful to simplify some of these tasks (e.g. CI -> Goldigger and Dev Laptop -> Goldigger)
+
 - terraform to define and manage infrastructure
 
 
