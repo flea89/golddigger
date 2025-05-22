@@ -1,0 +1,39 @@
+syntax = "proto3";
+
+package uploader;
+
+
+service FileUploader {
+  rpc UploadFiles(stream FileUploadRequest) returns (FileUploadResponse);
+}
+
+message FileData {
+  string file_name = 1;
+  string file_path = 2;
+  bytes raw_data = 3;
+}
+
+message UploadMetadata {
+  FileData changed_file = 1;
+  optional FileData original_file = 2;
+  repeated FileData additional_files = 3;
+  map<string, string> custom_metadata = 4;
+}
+
+message FileChunk {
+  bytes content = 1;
+  bool is_last_chunk_for_current_file = 2;
+}
+
+message FileUploadRequest {
+  oneof request_type {
+    UploadMetadata metadata = 1;
+    FileChunk chunk = 2;
+  }
+}
+
+message FileUploadResponse {
+  bool success = 1;
+  string message = 2;
+  repeated string uploaded_file_paths = 3;
+}
