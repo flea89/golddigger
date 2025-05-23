@@ -40,8 +40,8 @@ There are a few options we might consider:
 1. Single REST endpoint with `multipart/form-data` content type, all files and metadata in a single request
 2. Single REST endpoint with `application/json` content type, files encoded as base64
 3. Multiple REST endpoints:
-    - POST `/api/v1/projects/<project_id>/` with `application/json` content type to create a test run.
-    - (optional) POST `/api/v1/projects/<project_id>/<test_run_id>/failures/` add a failure to the test run.
+    - POST `/api/v1/projects/<project_id>/test_runs` with `application/json` content type to create a test run.
+    - (optional) POST `/api/v1/projects/<project_id>/test_runs/<test_run_id>/failures/` add a failure to the test run.
     - POST `/api/v1/projects/<project_id>/test_runs/<test_run_id>/files/` with `multipart/form-data`, containing file bytes and metadata
 4. gRPC service, single rpc with client streaming (first message is metadata, then binary chunks follow)
 5. gRPC service, multiple rpcs:
@@ -84,6 +84,457 @@ library, you can't share the same http connection as the "main" server you need 
 which, in cloud run, isn't possible, as only one port is provided - so sticking to cloud run
 would mean having multiple containers/services.
 
-## TODO: API specification
+Given the above list of pros and cons, we think a REST approach is right
+for an MVP, as it's a faster path forward and keeps infrastructure simpler.
 
-Pending a decision on the above
+## API specification
+
+### Resources
+
+#### `TestRunRequest`
+
+```
+{
+    "commit_hash": string,
+    "branch_name": string,
+    "failures": [GoldenFailureRequest]
+    "metadata?": {
+        [string]: string,
+    },
+}
+```
+
+#### `GoldenFailureRequest`
+
+```
+{
+    "fullName": string,
+    "updated": FileRequest
+    "original?": FileRequest
+    "additional": [FileRequest]
+}
+```
+
+#### `FileRequest`
+
+```
+{
+    "label": string, // original | updated | diff | ... ignored for updated/original
+    "fullName": string,
+}
+```
+
+#### `TestRun`
+
+```
+{
+    "id": string
+    "status": "initial" | "partial" | "finished" | "error",
+    "createdAt": string,
+    "commit_hash": string,
+    "branch_name": string,
+    "failures": [GoldenFailure]
+    "metadata?": {
+        [string]: string,
+    },
+}
+```
+
+#### `GoldenFailure`
+
+```
+{
+    "id": string,
+    "status": "initial" | "partial" | "finished" | "error",
+    "createdAt": string,
+    "fullName": string,
+    "updated": File
+    "original?": File
+    "additional": [File]
+}
+```
+
+#### `File`
+
+```
+{
+    "id": string,
+    "status": "initial" | "partial" | "finished" | "error",
+    "label": string, // original | updated | diff | ...
+    "fullName": string,
+    "contentType": string, // only available if "finished"
+    "size": number, // only available if "finished"
+}
+```
+
+### Endpoints
+
+-   `/api/v1/projects/<project_id>/test_run`
+
+    -   POST: creates a new test run. Body must be a `TestRunRequest`. On success, returns a `TestRun` resource
+    -   Other methods not allowed
+
+-   `/api/v1/projects/<project_id>/test_run/<test_run_id>`
+
+    -   GET: Returns the relevant `TestRun` resource
+    -   Other methods not allowed
+
+-   `/api/v1/projects/<project_id>/test_run/<test_run_id>/failures/<test_failure_id>/files/<file_id>/object`
+    -   POST: Upload the data (binary/text), requiring "Content-Type" header and "Content-Length".
+        If the related File resource is in a "finished" state, POST will return a 409 Conflict.
+
+### Open API spec
+
+```yml
+openapi: 3.0.3
+info:
+    title: File Upload API
+    version: v1
+    description: API for uploading files related to test runs and their failures.
+
+servers:
+    - url: /api/v1
+
+components:
+    schemas:
+        FileRequest:
+            type: object
+            required:
+                - label
+                - relativePath
+            properties:
+                label:
+                    type: string
+                    description: "Label for the file (e.g., original, updated, diff). Ignored for 'updated' and 'original' in GoldenFailureRequest."
+                relativePath:
+                    type: string
+                    description: "Path of the file, including filename and extension, relative to the repository root."
+            example:
+                label: "diff"
+                relativePath: "test/golden/diffs/homepage_mobile_diff.png"
+
+        GoldenFailureRequest:
+            type: object
+            required:
+                - relativePath
+                - updated
+            properties:
+                relativePath:
+                    type: string
+                    description: "Relative path of the image file that caused the failure (e.g., test/golden/homepage.png)."
+                updated:
+                    $ref: "#/components/schemas/FileRequest"
+                original:
+                    $ref: "#/components/schemas/FileRequest"
+                additional:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/FileRequest"
+            example:
+                relativePath: "test/specs/ui/homepage_mobile.test.js"
+                updated:
+                    label: "updated"
+                    relativePath: "test/golden/homepage/homepage_mobile.png"
+                original:
+                    label: "original"
+                    relativePath: "test/golden/expected/homepage_mobile.png"
+                additional:
+                    - label: "diff"
+                      relativePath: "test/golden/diffs/homepage_mobile_diff.png"
+
+        TestRunRequest:
+            type: object
+            required:
+                - commit_hash
+                - branch_name
+                - failures
+            properties:
+                commit_hash:
+                    type: string
+                    description: "The commit hash associated with this test run."
+                branch_name:
+                    type: string
+                    description: "The branch name associated with this test run."
+                failures:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/GoldenFailureRequest"
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+                    description: "Optional key-value metadata for the test run."
+            example:
+                commit_hash: "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0"
+                branch_name: "feature/new-homepage"
+                failures:
+                    - relativePath: "test/golden/homepage_mobile.png"
+                      updated:
+                          label: "updated"
+                          relativePath: "test/golden/failures/homepage_mobile.png"
+                      original:
+                          label: "original"
+                          relativePath: "test/golden/homepage_mobile.png"
+                metadata:
+                    buildNumber: "12345"
+                    environment: "staging"
+
+        File:
+            type: object
+            required:
+                - id
+                - status
+                - label
+                - relativePath
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                    description: "Unique identifier for the file."
+                status:
+                    type: string
+                    enum: [initial, partial, finished, error]
+                    description: "Upload status of the file."
+                label:
+                    type: string
+                    description: "Label for the file (e.g., original, updated, diff)."
+                relativePath:
+                    type: string
+                    description: "Path of the file, including filename and extension, relative to the repository root."
+                contentType:
+                    type: string
+                    description: "MIME type of the file. Only available if status is 'finished'."
+                size:
+                    type: integer
+                    format: int64
+                    description: "Size of the file in bytes. Only available if status is 'finished'."
+            example:
+                id: "f1e2d3c4-b5a6-7890-1234-567890abcdef"
+                status: "finished"
+                label: "updated"
+                relativePath: "test/golden/homepage/homepage_mobile.png"
+                contentType: "image/png"
+                size: 102400
+
+        GoldenFailure:
+            type: object
+            required:
+                - id
+                - status
+                - createdAt
+                - relativePath
+                - updated
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                    description: "Unique identifier for the golden failure."
+                status:
+                    type: string
+                    enum: [initial, partial, finished, error]
+                    description: "Status of processing this failure."
+                createdAt:
+                    type: string
+                    format: date-time
+                    description: "Timestamp of when the failure was recorded."
+                relativePath:
+                    type: string
+                    description: "Relative path of the image file that caused the failure (e.g., test/golden/homepage.png)."
+                updated:
+                    $ref: "#/components/schemas/File"
+                original:
+                    $ref: "#/components/schemas/File"
+                additional:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/File"
+            example:
+                id: "gf1e2d3c-b5a6-7890-1234-567890abcdef"
+                status: "finished"
+                createdAt: "2024-05-23T10:30:00Z"
+                relativePath: "test/golden/homepage_mobile.png"
+                updated:
+                    id: "f1e2d3c4-b5a6-7890-1234-567890abcdef"
+                    status: "finished"
+                    label: "updated"
+                    relativePath: "test/golden/failures/homepage_mobile.png"
+                    contentType: "image/png"
+                    size: 102400
+
+        TestRun:
+            type: object
+            required:
+                - id
+                - status
+                - createdAt
+                - commit_hash
+                - branch_name
+                - failures
+            properties:
+                id:
+                    type: string
+                    format: uuid
+                    description: "Unique identifier for the test run."
+                status:
+                    type: string
+                    enum: [initial, partial, finished, error]
+                    description: "Overall status of the test run."
+                createdAt:
+                    type: string
+                    format: date-time
+                    description: "Timestamp of when the test run was created."
+                commit_hash:
+                    type: string
+                    description: "The commit hash associated with this test run."
+                branch_name:
+                    type: string
+                    description: "The branch name associated with this test run."
+                failures:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/GoldenFailure"
+                metadata:
+                    type: object
+                    additionalProperties:
+                        type: string
+                    description: "Optional key-value metadata for the test run."
+            example:
+                id: "tr1e2d3c-b5a6-7890-1234-567890abcdef"
+                status: "finished"
+                createdAt: "2024-05-23T10:00:00Z"
+                commit_hash: "a1b2c3d4e5f6a7b8c9d0e1f2a3b4c5d6e7f8a9b0"
+                branch_name: "feature/new-homepage"
+                failures:
+                    - id: "gf1e2d3c-b5a6-7890-1234-567890abcdef"
+                      status: "finished"
+                      createdAt: "2024-05-23T10:30:00Z"
+                      relativePath: "test/specs/ui/homepage_mobile.test.js"
+                      updated:
+                          id: "f1e2d3c4-b5a6-7890-1234-567890abcdef"
+                          status: "finished"
+                          label: "updated"
+                          relativePath: "test/golden/homepage/homepage_mobile.png"
+                          contentType: "image/png"
+                          size: 102400
+                metadata:
+                    buildNumber: "12345"
+                    environment: "staging"
+
+    parameters:
+        ProjectId:
+            name: project_id
+            in: path
+            required: true
+            description: Identifier of the project.
+            schema:
+                type: string
+            example: "my-awesome-project"
+        TestRunId:
+            name: test_run_id
+            in: path
+            required: true
+            description: Identifier of the test run.
+            schema:
+                type: string
+                format: uuid
+            example: "tr1e2d3c-b5a6-7890-1234-567890abcdef"
+        TestFailureId:
+            name: test_failure_id
+            in: path
+            required: true
+            description: Identifier of the test failure.
+            schema:
+                type: string
+                format: uuid
+            example: "gf1e2d3c-b5a6-7890-1234-567890abcdef"
+        FileId:
+            name: file_id
+            in: path
+            required: true
+            description: Identifier of the file.
+            schema:
+                type: string
+                format: uuid
+            example: "f1e2d3c4-b5a6-7890-1234-567890abcdef"
+
+paths:
+    /projects/{project_id}/test_run:
+        post:
+            summary: Create a new test run
+            description: Creates a new test run and associates failures and file metadata with it. The actual file binary data needs to be uploaded separately.
+            tags:
+                - TestRuns
+            parameters:
+                - $ref: "#/components/parameters/ProjectId"
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/TestRunRequest"
+            responses:
+                "201":
+                    description: Test run created successfully.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/TestRun"
+                "400":
+                    description: Invalid request payload.
+                "405":
+                    description: Method Not Allowed.
+
+    /projects/{project_id}/test_run/{test_run_id}:
+        get:
+            summary: Get a test run
+            description: Retrieves the details of a specific test run.
+            tags:
+                - TestRuns
+            parameters:
+                - $ref: "#/components/parameters/ProjectId"
+                - $ref: "#/components/parameters/TestRunId"
+            responses:
+                "200":
+                    description: Successful retrieval of test run.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/TestRun"
+                "404":
+                    description: Test run not found.
+                "405":
+                    description: Method Not Allowed.
+
+    /projects/{project_id}/test_run/{test_run_id}/failures/{test_failure_id}/files/{file_id}/object:
+        post:
+            summary: Upload file data
+            description: Uploads the binary/text data for a specific file associated with a test failure.
+            tags:
+                - Files
+            parameters:
+                - $ref: "#/components/parameters/ProjectId"
+                - $ref: "#/components/parameters/TestRunId"
+                - $ref: "#/components/parameters/TestFailureId"
+                - $ref: "#/components/parameters/FileId"
+            requestBody:
+                required: true
+                content:
+                    application/octet-stream: {}
+                    text/plain: {}
+                    image/png: {}
+                    image/jpeg: {}
+                    image/gif: {}
+                    image/svg+xml: {}
+                    image/webp: {}
+            responses:
+                "200":
+                    description: File uploaded successfully. The associated File resource status should be updated.
+                "400":
+                    description: Bad request (e.g., missing Content-Type or Content-Length).
+                "404":
+                    description: Resource not found (e.g., project, test run, failure, or file metadata).
+                "409":
+                    description: Conflict. The related File resource is already in a "finished" state.
+                "413":
+                    description: Payload Too Large (if file exceeds max size).
+```
