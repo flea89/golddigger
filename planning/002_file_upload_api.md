@@ -5,9 +5,9 @@ users to perform file upload after a failed test run.
 
 ## Terminology
 
-File: any file that is uploaded to the server
-Failure: a single failure in golden testing
-Test Run: a single test run - often, but not always, 1:1 with a commit (but one could re-run the test). Contains 1+ failures
+-   File: any file that is uploaded to the server
+-   Golden Failure: a single assertion failing within a golden test. For each individual golden failure exactly 1 file will be updated if the change is approved.
+-   Test Run: a single test run - often, but not always, 1:1 with a commit (but one could re-run the test). Contains 1+ failures
 
 ## Requirements
 
@@ -19,18 +19,19 @@ Test Run: a single test run - often, but not always, 1:1 with a commit (but one 
     - branch name (assuming git)
     - Other optional metadata could be allowed (e.g. an arbitrary `Map<String, String>` that could be optionally be displayed in the UI for the test run)
 2. Each test run may have an arbitrary (>0) number of failures.
-3. For each failure, a client MUST provide
-    - the path, relative to the codebase root, of the golden file (on first run, the original file may not exist, but we need to know the path of where to put the "changed" file on approval)
+3. For each golden failure, a client MUST provide
+    - the path, relative to the codebase root, of the golden file (on first run, the original file may not exist, but we need to know the path of where to put the "changed" file on approval) - for example `test/golden/homepage/homepage_mobile.png`
     - the binary content of the new (different) file.
-4. For each failure, a client MAY provide:
+4. For each golden failure, a client MAY provide:
     - the content of the original file itself (to provide a side-by-side view)
-    - the path/filename where the new file was saved locally
+    - the path/filename, relative to the codebase root, of the new file (e.g. `tests/golden/failures/homepage_mobile.png`)
+    - the name of the test and/or test suite where the failure happened
     - a list of additional files, for example a diff file, an image high contrast version, etc.. each must have:
         - label (required): used in the UI to identify it (e.g. "high contrast", "diff") - we may have "special"
         - file_name (required): path/name.ext
         - content (required): binary content of the file
 5. For each file provided, an optional mimetype can be provided for better display in the UI (otherwise it'll be inferred. Any filetype is supported, but better UI will be provided for: "text/\*", "image/png", "image/svg+xml", "image/jpg", "image/webp", "image/gif")
-6. Each file will have a (configurable) maximum file size
+6. Each file will uploaded will be subject to a (configurable) maximum file size
 
 ### API format
 
@@ -52,9 +53,8 @@ There are a few options we might consider:
     }
     ```
 6. Non-http communication (e.g. sftp/rsync)?
-7. Investigate what GCS/S3/other file storage services do
 
-Option 3 seems to be easily discountable, as it provides no benefits over the option 1 aside from ease
+Option 2 seems to be easily discountable, as it provides no benefits over the option 1 aside from ease
 of parsing/encoding (marginal, multipart should be well supported) and significant file-size
 increase
 
@@ -68,6 +68,16 @@ For the gRPC options similar considerations can be made, although connection reu
 
 Between gRPC and REST, I _think_ gRPC would make it easier to implement resumable uploads
 as well as adding gzip compression on upload, but neither would be infeasible
+
+I've briefly investigated what GCS does and, unsurprisingly, it provides both an HTTP and gRPC API
+but (this time, surprisingly) the gRPC one has been made public only very recently (late 2024),
+while previously all the SDKs were using HTTP. Reading the API spec for GCS, these are my initial thoughs:
+
+1. Resumable uploads are somewhat convoluted regardless of transport - the do seem a bit less
+   fiddly in gRPC, possibly because everything is slightly more fiddly in gRPC to begin with
+2. In general I think the [WriteObject](https://github.com/googleapis/googleapis/blob/8cf16d3bc5b25568787925cdc56b5f6951863b00/google/storage/v2/storage.proto#L381)
+   and [BidiWriteObject](https://github.com/googleapis/googleapis/blob/8cf16d3bc5b25568787925cdc56b5f6951863b00/google/storage/v2/storage.proto#L398) are quite
+   useful starting point to consider if we go the gRPC route
 
 ## TODO: API specification
 
