@@ -79,6 +79,11 @@ while previously all the SDKs were using HTTP. Reading the API spec for GCS, the
    and [BidiWriteObject](https://github.com/googleapis/googleapis/blob/8cf16d3bc5b25568787925cdc56b5f6951863b00/google/storage/v2/storage.proto#L398) are quite
    useful starting point to consider if we go the gRPC route
 
+One more points to add to the REST vs gRPC comparison - AFAICT, at least with the node grpc
+library, you can't share the same http connection as the "main" server you need to spin up two
+which, in cloud run, isn't possible, as only one port is provided - so sticking to cloud run
+would mean having multiple containers/services.
+
 ## TODO: API specification
 
 Pending a decision on the above
