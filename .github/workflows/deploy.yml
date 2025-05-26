@@ -34,16 +34,14 @@ jobs:
         run: terraform init
 
       - name: Terraform Apply
-run: terraform apply -auto-approve -var="commit_sha=$TAG"
-
-env:
-
+        run: terraform apply -auto-approve -var="commit_sha=$TAG"
+        env:
           TF_VAR_mongodb_atlas_public_key: ${{ secrets.TF_VAR_mongodb_atlas_public_key }}
           TF_VAR_mongodb_atlas_private_key: ${{ secrets.TF_VAR_mongodb_atlas_private_key }}
           TF_VAR_atlas_org_id: ${{ secrets.TF_VAR_atlas_org_id }}
-TF_VAR_database_url: ${{ secrets.TF_VAR_database_url }}
-TF_VAR_atlas_project: ${{ secrets.TF_VAR_atlas_project }}
-TF_VAR_atals_app_user: ${{ secrets.TF_VAR_atlas_app_user }}
-TF_VAR_atlas_app_password: ${{ secrets.TF_VAR_atlas_app_password }}
-TF_VAR_atlas_db_name: ${{ secrets.TF_VAR_atlas_db_name }}
-TF_VAR_artifact_service_account: ${{ secrets.TF_VAR_artifact_service_account }}
+          TF_VAR_database_url: ${{ secrets.TF_VAR_database_url }}
+          TF_VAR_atlas_project: ${{ secrets.TF_VAR_atlas_project }}
+          TF_VAR_atals_app_user: ${{ secrets.TF_VAR_atlas_app_user }}
+          TF_VAR_atlas_app_password: ${{ secrets.TF_VAR_atlas_app_password }}
+          TF_VAR_atlas_db_name: ${{ secrets.TF_VAR_atlas_db_name }}
+          TF_VAR_artifact_service_account: ${{ secrets.TF_VAR_artifact_service_account }}
