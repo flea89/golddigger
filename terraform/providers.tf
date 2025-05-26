@@ -28,10 +28,10 @@ provider "mongodbatlas" {
   private_key = var.mongodb_atlas_private_key
 }
 
-# data "google_service_account_access_token" "repo" {
-#   target_service_account = var.artifact_service_account
-#   scopes                 = ["cloud-platform"]
-# }
+data "google_service_account_access_token" "repo" {
+  target_service_account = var.artifact_service_account
+  scopes                 = ["cloud-platform"]
+}
 
 
 provider "docker" {
@@ -45,7 +45,7 @@ provider "docker" {
   #
   registry_auth {
     address  = "${var.region}-docker.pkg.dev"
-  #   username = "oauth2accesstoken"
-  #   password = data.google_service_account_access_token.repo.access_token
+    username = "oauth2accesstoken"
+    password = data.google_service_account_access_token.repo.access_token
   }
 }
