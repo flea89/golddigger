@@ -40,7 +40,7 @@ jobs:
         run: terraform init
 
       - name: Terraform Apply
-        run: terraform apply -auto-approve -var="commit_sha=$TAG"
+        run: terraform apply -auto-approve -var="commit_sha=${{ github.sha }}"
         env:
           # Debug - Remove me
           TF_LOG: DEBUG
