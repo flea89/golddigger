@@ -15,3 +15,8 @@ resource "google_service_account" "service_account" {
   account_id   = "service-account-id"
   display_name = "Service Account"
 }
+
+
+---
+
+It would be fairly useful in general to abstract the service account creation for github SA for deployement ( but it's a separate thing).
