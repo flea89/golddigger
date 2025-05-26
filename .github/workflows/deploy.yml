@@ -30,6 +30,11 @@ jobs:
         with:
           terraform_version: 1.6.6
 
+
+      # Debug - Remove me
+      - name: Terraform Init
+        run:  gcloud auth list
+
       - name: Terraform Init
         run: terraform init
 
