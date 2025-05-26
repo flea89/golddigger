@@ -41,7 +41,7 @@ jobs:
           TF_VAR_atlas_org_id: ${{ secrets.TF_VAR_atlas_org_id }}
           TF_VAR_database_url: ${{ secrets.TF_VAR_database_url }}
           TF_VAR_atlas_project: ${{ secrets.TF_VAR_atlas_project }}
-          TF_VAR_atals_app_user: ${{ secrets.TF_VAR_atlas_app_user }}
-          TF_VAR_atlas_app_password: ${{ secrets.TF_VAR_atlas_app_password }}
+          TF_VAR_atlas_app_user: ${{ secrets.TF_VAR_atlas_app_user }}
+          TF_VAR_atlas_app_user_pwd: ${{ secrets.TF_VAR_atlas_app_user_pwd }}
           TF_VAR_atlas_db_name: ${{ secrets.TF_VAR_atlas_db_name }}
           TF_VAR_artifact_service_account: ${{ secrets.TF_VAR_artifact_service_account }}
