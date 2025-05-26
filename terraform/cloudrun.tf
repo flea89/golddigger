@@ -6,7 +6,7 @@ resource "google_cloud_run_service" "nextjs_app" {
   template {
     spec {
       containers {
-        image = "gcr.io/${var.gcp_project_id}/nextjs"
+        image = docker_registry_image.registry_push.name
         ports {
           container_port = 8080
         }
@@ -22,6 +22,9 @@ resource "google_cloud_run_service" "nextjs_app" {
     percent         = 100
     latest_revision = true
   }
+
+
+  # depends_on = [docker_image.nextjs_app]
 }
 
 
