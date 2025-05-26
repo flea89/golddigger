@@ -42,6 +42,8 @@ jobs:
       - name: Terraform Apply
         run: terraform apply -auto-approve -var="commit_sha=$TAG"
         env:
+          # Debug - Remove me
+          TF_LOG: DEBUG
           TF_VAR_mongodb_atlas_public_key: ${{ secrets.TF_VAR_mongodb_atlas_public_key }}
           TF_VAR_mongodb_atlas_private_key: ${{ secrets.TF_VAR_mongodb_atlas_private_key }}
           TF_VAR_atlas_org_id: ${{ secrets.TF_VAR_atlas_org_id }}
