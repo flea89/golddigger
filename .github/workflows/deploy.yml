@@ -31,8 +31,10 @@ jobs:
         uses: hashicorp/setup-terraform@v3
 
       # Debug - Remove me
-      - name: Terraform Init
-        run:  gcloud auth list
+      - name: Show GOOGLE_APPLICATION_CREDENTIALS
+        run: |
+          echo $GOOGLE_APPLICATION_CREDENTIALS
+          cat $GOOGLE_APPLICATION_CREDENTIALS
 
       - name: Terraform Init
         run: terraform init
