@@ -23,7 +23,8 @@ resource "google_cloud_run_service" "nextjs_app" {
     latest_revision = true
   }
 
-
+  // Add a trigger. It should deploy not only when image changes, but also when the
+  // env variables change.
   # depends_on = [docker_image.nextjs_app]
 }
 
