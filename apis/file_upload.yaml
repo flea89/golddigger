@@ -1,0 +1,281 @@
+openapi: 3.0.3
+info:
+    title: File Upload API
+    version: v1
+    description: API for uploading files related to test runs and their failures.
+
+servers:
+    - url: /api/v1
+
+paths:
+    /projects/{project_id}/test_run:
+        post:
+            summary: Create a new test run
+            description: Creates a new test run and associates failures and file metadata with it. The actual file binary data needs to be uploaded separately.
+            tags:
+                - TestRuns
+            parameters:
+                - $ref: "#/components/parameters/ProjectId"
+            requestBody:
+                required: true
+                content:
+                    application/json:
+                        schema:
+                            $ref: "#/components/schemas/TestRunRequest"
+            responses:
+                "201":
+                    description: Test run created successfully.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/TestRun"
+                "400":
+                    description: Invalid request payload.
+                "405":
+                    description: Method Not Allowed.
+
+    /projects/{project_id}/test_run/{test_run_id}:
+        get:
+            summary: Get a test run
+            description: Retrieves the details of a specific test run.
+            tags:
+                - TestRuns
+            parameters:
+                - $ref: "#/components/parameters/ProjectId"
+                - $ref: "#/components/parameters/TestRunId"
+            responses:
+                "200":
+                    description: Successful retrieval of test run.
+                    content:
+                        application/json:
+                            schema:
+                                $ref: "#/components/schemas/TestRun"
+                "404":
+                    description: Test run not found.
+                "405":
+                    description: Method Not Allowed.
+
+    /projects/{project_id}/test_run/{test_run_id}/failures/{test_failure_id}/files/{file_id}/object:
+        post:
+            summary: Upload file data
+            description: Uploads the binary/text data for a specific file associated with a test failure.
+            tags:
+                - Files
+            parameters:
+                - $ref: "#/components/parameters/ProjectId"
+                - $ref: "#/components/parameters/TestRunId"
+                - $ref: "#/components/parameters/TestFailureId"
+                - $ref: "#/components/parameters/FileId"
+            requestBody:
+                required: true
+                content:
+                    "*/*":
+                        example: "any mime type allowd, text/ and image/ provide a better UI"
+            responses:
+                "200":
+                    description: File uploaded successfully. The associated File resource status should be updated.
+                "400":
+                    description: Bad request (e.g., missing Content-Type or Content-Length).
+                "404":
+                    description: Resource not found (e.g., project, test run, failure, or file metadata).
+                "409":
+                    description: Conflict. The related File resource is already in a "finished" state.
+                "413":
+                    description: Payload Too Large (if file exceeds max size).
+
+components:
+    schemas:
+        FileRequest:
+            type: object
+            required:
+                - label
+                - relativePath
+            properties:
+                label:
+                    $ref: "#/components/schemas/FileLabel"
+                relativePath:
+                    $ref: "#/components/schemas/RelativePath"
+
+        File:
+            type: object
+            required:
+                - id
+                - status
+                - label
+                - relativePath
+            properties:
+                id:
+                    $ref: "#/components/schemas/Id"
+                status:
+                    $ref: "#/components/schemas/Status"
+                label:
+                    $ref: "#/components/schemas/FileLabel"
+                relativePath:
+                    $ref: "#/components/schemas/RelativePath"
+                contentType:
+                    type: string
+                    description: "MIME type of the file. Only available if status is 'finished'."
+                size:
+                    type: integer
+                    description: "Size of the file in bytes. Only available if status is 'finished'."
+
+        GoldenFailureRequest:
+            type: object
+            required:
+                - relativePath
+                - updated
+            properties:
+                relativePath:
+                    allOf:
+                        - $ref: "#/components/schemas/RelativePath"
+                        - description: "Relative path of the image file that caused the failure (e.g., test/golden/homepage.png)."
+                updated:
+                    allOf:
+                        - $ref: "#/components/schemas/FileRequest"
+                        - description: "Details of the 'updated' file. The 'label' in the FileRequest is contextually 'updated'; server may ignore or override the provided label."
+                original:
+                    allOf:
+                        - $ref: "#/components/schemas/FileRequest"
+                        - description: "Details of the 'original' file. The 'label' in the FileRequest is contextually 'original'; server may ignore or override the provided label."
+                additional:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/FileRequest"
+
+        GoldenFailure:
+            type: object
+            required:
+                - id
+                - status
+                - createdAt
+                - relativePath
+                - updated
+            properties:
+                id:
+                    allOf:
+                        - $ref: "#/components/schemas/Id"
+                        - description: "Unique identifier for the golden failure."
+                status:
+                    allOf:
+                        - $ref: "#/components/schemas/Status"
+                        - description: "Status of processing this failure."
+                createdAt:
+                    allOf:
+                        - $ref: "#/components/schemas/CreatedAt"
+                        - description: "Timestamp of when the failure was recorded."
+                relativePath:
+                    allOf:
+                        - $ref: "#/components/schemas/RelativePath"
+                        - description: "Relative path of the image file that caused the failure (e.g., test/golden/homepage.png)."
+                updated:
+                    $ref: "#/components/schemas/File"
+                original:
+                    $ref: "#/components/schemas/File"
+                additional:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/File"
+
+        TestRunRequest:
+            type: object
+            required:
+                - commit_hash
+                - branch_name
+                - failures
+            properties:
+                commit_hash:
+                    $ref: "#/components/schemas/CommitHash"
+                branch_name:
+                    $ref: "#/components/schemas/BranchName"
+                failures:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/GoldenFailureRequest"
+                metadata:
+                    $ref: "#/components/schemas/Metadata"
+
+        TestRun:
+            type: object
+            required:
+                - id
+                - status
+                - createdAt
+                - commit_hash
+                - branch_name
+                - failures
+            properties:
+                id:
+                    $ref: "#/components/schemas/Id"
+                status:
+                    $ref: "#/components/schemas/Status"
+                createdAt:
+                    $ref: "#/components/schemas/CreatedAt"
+                commit_hash:
+                    $ref: "#/components/schemas/CommitHash"
+                branch_name:
+                    $ref: "#/components/schemas/BranchName"
+                failures:
+                    type: array
+                    items:
+                        $ref: "#/components/schemas/GoldenFailure"
+                metadata:
+                    $ref: "#/components/schemas/Metadata"
+        Id:
+            type: string
+            format: uuid
+            description: "Resource unique identifier."
+        Status:
+            type: string
+            enum: [initial, started, finished, error]
+            description: "Processing status."
+        CreatedAt:
+            type: string
+            format: date-time
+            description: "DateTime for when the resource was created."
+        RelativePath:
+            type: string
+            description: "Path of the file, including filename and extension, relative to the repository root."
+        FileLabel:
+            type: string
+            description: "Label for the file (e.g. original, updated, diff)."
+        CommitHash:
+            type: string
+            description: "The commit hash associated with a test run."
+        BranchName:
+            type: string
+            description: "The branch name associated with a test run."
+        Metadata:
+            type: object
+            additionalProperties:
+                type: string
+            description: "Optional key-value metadata."
+
+    parameters:
+        ProjectId:
+            name: project_id
+            in: path
+            required: true
+            description: Identifier of the project.
+            schema:
+                $ref: "#/components/schemas/Id"
+        TestRunId:
+            name: test_run_id
+            in: path
+            required: true
+            description: Identifier of the test run.
+            schema:
+                $ref: "#/components/schemas/Id"
+        TestFailureId:
+            name: test_failure_id
+            in: path
+            required: true
+            description: Identifier of the test failure.
+            schema:
+                $ref: "#/components/schemas/Id"
+        FileId:
+            name: file_id
+            in: path
+            required: true
+            description: Identifier of the file.
+            schema:
+                $ref: "#/components/schemas/Id"
