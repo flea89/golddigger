@@ -1,0 +1,55 @@
+name: Build and Deploy via Terraform
+
+on:
+  push:
+# branches: [main]
+
+
+env:
+  PROJECT_ID: goldigger-460505
+  REGION: europe-west12
+  SERVICE_NAME: nextjs-app
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: terraform
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up GCP auth
+        uses: google-github-actions/auth@v2
+        with:
+          credentials_json: ${{ secrets.GCP_SA_KEY }}
+          create_credentials_file: true
+          export_environment_variables: true
+
+      - name: Setup Terraform
+        uses: hashicorp/setup-terraform@v3
+
+      # Debug - Remove me
+      - name: Show GOOGLE_APPLICATION_CREDENTIALS
+        run: |
+          echo $GOOGLE_APPLICATION_CREDENTIALS
+          cat $GOOGLE_APPLICATION_CREDENTIALS
+
+      - name: Terraform Init
+        run: terraform init
+
+      - name: Terraform Apply
+        run: terraform apply -auto-approve -var="commit_sha=${{ github.sha }}"
+        env:
+          # Debug - Remove me
+          TF_LOG: DEBUG
+          TF_VAR_mongodb_atlas_public_key: ${{ secrets.TF_VAR_mongodb_atlas_public_key }}
+          TF_VAR_mongodb_atlas_private_key: ${{ secrets.TF_VAR_mongodb_atlas_private_key }}
+          TF_VAR_atlas_org_id: ${{ secrets.TF_VAR_atlas_org_id }}
+          TF_VAR_database_url: ${{ secrets.TF_VAR_database_url }}
+          TF_VAR_atlas_project: ${{ secrets.TF_VAR_atlas_project }}
+          TF_VAR_atlas_app_user: ${{ secrets.TF_VAR_atlas_app_user }}
+          TF_VAR_atlas_app_user_pwd: ${{ secrets.TF_VAR_atlas_app_user_pwd }}
+          TF_VAR_atlas_db_name: ${{ secrets.TF_VAR_atlas_db_name }}
+          TF_VAR_artifact_service_account: ${{ secrets.TF_VAR_artifact_service_account }}
